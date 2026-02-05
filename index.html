@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html class="light" lang="de">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+    <title>Die Wahl - Politischer Kompass</title>
+    <link rel="icon" type="image/png" href="assets/favicon-512.png"/>
+    <meta name="description" content="Vergleiche deine Standpunkte mit den Parteien. Neutral, datenschutzfreundlich und präzise.">
+    <meta name="theme-color" content="#ffffff">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        background: "#ffffff",
+                        foreground: "#0a0a0a",
+                        surface: "#fafafa",
+                        border: "#eaeaea",
+                        "accents-1": "#fafafa",
+                        "accents-2": "#eaeaea",
+                        "accents-3": "#999",
+                        "accents-4": "#888",
+                        "accents-5": "#666",
+                        "accents-6": "#444",
+                        "accents-7": "#333",
+                        "accents-8": "#111",
+                        primary: "#000000",
+                        "primary-hover": "#333333",
+                        success: "#0070f3",
+                        error: "#e00",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+                    },
+                    boxShadow: {
+                        "sm": "0 2px 4px rgba(0,0,0,0.02)",
+                        "md": "0 5px 10px rgba(0,0,0,0.06)",
+                        "lg": "0 8px 30px rgba(0,0,0,0.12)",
+                        "hover": "0 30px 60px rgba(0,0,0,0.12)",
+                    },
+                    animation: {
+                        "fade-in": "fadeIn 0.4s ease-out forwards",
+                        "slide-up": "slideUp 0.5s ease-out forwards",
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            "0%": { opacity: "0" },
+                            "100%": { opacity: "1" }
+                        },
+                        slideUp: {
+                            "0%": { opacity: "0", transform: "translateY(10px)" },
+                            "100%": { opacity: "1", transform: "translateY(0)" }
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+
+    <style>
+        :root {
+            --grid-size: 40px;
+        }
+        body {
+            background-color: #fafafa;
+            background-image: 
+                linear-gradient(to right, #eaeaea 1px, transparent 1px),
+                linear-gradient(to bottom, #eaeaea 1px, transparent 1px);
+            background-size: var(--grid-size) var(--grid-size);
+            background-position: center top;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Custom UI Elements */
+        .geist-card {
+            background: #ffffff;
+            border: 1px solid #eaeaea;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s ease;
+        }
+        
+        .geist-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .btn-default {
+            background: #fff;
+            border: 1px solid #eaeaea;
+            color: #111;
+        }
+        .btn-default:hover {
+            border-color: #000;
+        }
+        .btn-default:active {
+            background: #fafafa;
+        }
+
+        .btn-primary {
+            background: #000;
+            color: #fff;
+            border: 1px solid #000;
+        }
+        .btn-primary:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        .btn-ghost {
+            color: #666;
+            background: transparent;
+        }
+        .btn-ghost:hover {
+            color: #000;
+            background: rgba(0,0,0,0.03);
+        }
+
+        /* Radio Input Styling */
+        .radio-option input:checked + div {
+            background-color: #fafafa;
+            border-color: #000;
+            box-shadow: 0 0 0 1px #000;
+        }
+        .radio-option input:checked + div .indicator {
+            transform: scale(1.1);
+        }
+        
+        /* Utility */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @media print {
+            body { background: white; }
+            header, .no-print { display: none !important; }
+            .geist-card { box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body class="text-foreground min-h-screen flex flex-col selection:bg-black selection:text-white">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-border">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6">
+        <div class="flex h-16 items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer select-none" onclick="app.reset()">
+                <div class="flex h-8 w-8 items-center justify-center rounded bg-black text-white shadow-sm">
+                    <span class="material-symbols-outlined text-[20px]">how_to_vote</span>
+                </div>
+                <div class="flex flex-col">
+                    <h1 class="text-sm font-bold tracking-tight leading-none text-black">Die Wahl</h1>
+                    <span class="text-[10px] text-accents-5 font-medium tracking-wide mt-0.5">POLITISCHER KOMPASS</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div class="relative group">
+                    <button id="countryBtn" class="flex items-center gap-2 text-sm font-medium text-accents-6 hover:text-black transition-colors px-3 py-1.5 rounded-full hover:bg-accents-1 border border-transparent hover:border-border">
+                        <span id="countryFlag">🇦🇹</span>
+                        <span id="countryName" class="hidden sm:inline">Österreich</span>
+                        <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                    </button>
+                    <!-- Country Dropdown -->
+                    <div class="absolute right-0 mt-2 w-48 bg-white border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden transform origin-top-right">
+                        <div class="py-1">
+                            <button onclick="app.setCountry('at')" class="w-full text-left px-4 py-2.5 text-sm hover:bg-accents-1 flex items-center gap-3 transition-colors text-accents-6 hover:text-black">
+                                <span class="text-lg">🇦🇹</span> Österreich
+                            </button>
+                            <button onclick="app.setCountry('de')" class="w-full text-left px-4 py-2.5 text-sm hover:bg-accents-1 flex items-center gap-3 transition-colors text-accents-6 hover:text-black">
+                                <span class="text-lg">🇩🇪</span> Deutschland
+                            </button>
+                            <button onclick="app.setCountry('us')" class="w-full text-left px-4 py-2.5 text-sm hover:bg-accents-1 flex items-center gap-3 transition-colors text-accents-6 hover:text-black">
+                                <span class="text-lg">🇺🇸</span> USA
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Progress Bar -->
+    <div class="w-full h-[2px] bg-accents-2 absolute bottom-0 left-0 opacity-0 transition-opacity duration-300" id="progressContainer">
+        <div id="progressBar" class="h-full bg-black relative w-0 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]"></div>
+    </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main id="app" class="flex-grow flex flex-col items-center py-10 px-4 sm:px-6">
+    
+    <!-- VIEW: INTRO -->
+    <div id="view-intro" class="w-full max-w-2xl flex flex-col items-center text-center mt-8 md:mt-16 animate-slide-up">
+        
+        <h2 class="text-4xl md:text-6xl font-extrabold tracking-tight text-black mb-6">
+            Finde deine <br class="hidden sm:block"/> politische Position.
+        </h2>
+        
+        <p class="text-lg text-accents-5 mb-10 leading-relaxed max-w-lg mx-auto">
+            Beantworte 14 Fragen zu Wirtschaft und Gesellschaft und vergleiche deine Ansichten wissenschaftlich fundiert mit den Parteien.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <button onclick="app.startQuiz()" class="btn-primary h-12 px-8 text-base shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group">
+                Jetzt starten
+                <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </button>
+            <button id="resumeBtn" onclick="app.resumeQuiz()" style="display:none;" class="btn-default h-12 px-8 text-base flex items-center justify-center gap-2">
+                Fortsetzen
+                <span class="material-symbols-outlined text-[18px]">history</span>
+            </button>
+        </div>
+        
+        <div class="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left w-full max-w-3xl">
+            <div class="p-5 rounded-xl bg-white border border-border shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-8 h-8 rounded-lg bg-accents-1 border border-border flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-accents-6 text-[18px]">science</span>
+                </div>
+                <h3 class="font-semibold text-sm text-black">Wissenschaftlich</h3>
+                <p class="text-xs text-accents-5 mt-1 leading-relaxed">Gewichtetes 2-Achsen Modell (Wirtschaft & Gesellschaft).</p>
+            </div>
+            <div class="p-5 rounded-xl bg-white border border-border shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-8 h-8 rounded-lg bg-accents-1 border border-border flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-accents-6 text-[18px]">visibility_off</span>
+                </div>
+                <h3 class="font-semibold text-sm text-black">Privat</h3>
+                <p class="text-xs text-accents-5 mt-1 leading-relaxed">Deine Daten verlassen niemals deinen Browser.</p>
+            </div>
+            <div class="p-5 rounded-xl bg-white border border-border shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-8 h-8 rounded-lg bg-accents-1 border border-border flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-accents-6 text-[18px]">public</span>
+                </div>
+                <h3 class="font-semibold text-sm text-black">Flexibel</h3>
+                <p class="text-xs text-accents-5 mt-1 leading-relaxed">Unterstützt Parteien aus AT, DE und den USA.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: QUIZ -->
+    <div id="view-quiz" class="w-full max-w-3xl hidden opacity-0 flex-col">
+        <div class="geist-card bg-white rounded-2xl p-6 md:p-10 min-h-[400px] flex flex-col relative overflow-hidden">
+            
+            <!-- Question Header -->
+            <div class="flex justify-between items-start mb-8">
+                <span id="questionTopic" class="inline-flex items-center px-2.5 py-1 rounded text-[10px] font-bold bg-accents-1 text-accents-6 border border-border uppercase tracking-wider">
+                    Thema
+                </span>
+                <span id="questionCounter" class="text-xs font-mono text-accents-4 pt-1">01 / 14</span>
+            </div>
+            
+            <!-- Question Text -->
+            <h2 id="questionText" class="text-2xl md:text-3xl font-bold tracking-tight text-black leading-tight mb-10 min-h-[80px]">
+                Lade Frage...
+            </h2>
+
+            <!-- Input Area -->
+            <div class="mt-auto">
+                <div class="flex justify-between text-[10px] font-bold text-accents-4 uppercase tracking-widest mb-4 px-1">
+                    <span>Stimme gar nicht zu</span>
+                    <span>Stimme voll zu</span>
+                </div>
+                
+                <!-- Likert Scale -->
+                <div class="grid grid-cols-5 gap-2 sm:gap-4 w-full h-16 sm:h-20" role="radiogroup">
+                    <!-- -2 -->
+                    <label class="cursor-pointer radio-option relative group">
+                        <input class="sr-only" type="radio" name="answer" value="-2" onclick="app.handleAnswer(-2)">
+                        <div class="w-full h-full rounded-xl border border-border bg-surface hover:bg-white hover:border-accents-4 transition-all duration-200 flex flex-col items-center justify-center">
+                            <div class="w-8 h-8 rounded-full border border-accents-3 flex items-center justify-center indicator transition-transform duration-200">
+                                <span class="material-symbols-outlined text-[20px] text-accents-5">close</span>
+                            </div>
+                        </div>
+                    </label>
+                    <!-- -1 -->
+                    <label class="cursor-pointer radio-option relative group">
+                        <input class="sr-only" type="radio" name="answer" value="-1" onclick="app.handleAnswer(-1)">
+                        <div class="w-full h-full rounded-xl border border-border bg-surface hover:bg-white hover:border-accents-4 transition-all duration-200 flex flex-col items-center justify-center">
+                            <div class="w-6 h-6 rounded-full border border-accents-3 indicator transition-transform duration-200"></div>
+                        </div>
+                    </label>
+                    <!-- 0 -->
+                    <label class="cursor-pointer radio-option relative group">
+                        <input class="sr-only" type="radio" name="answer" value="0" onclick="app.handleAnswer(0)">
+                        <div class="w-full h-full rounded-xl border border-border bg-surface hover:bg-white hover:border-accents-4 transition-all duration-200 flex flex-col items-center justify-center">
+                            <div class="w-3 h-3 rounded-full bg-accents-3 indicator transition-transform duration-200"></div>
+                            <span class="text-[9px] mt-2 text-accents-4 font-medium uppercase tracking-wide">Neutral</span>
+                        </div>
+                    </label>
+                    <!-- +1 -->
+                    <label class="cursor-pointer radio-option relative group">
+                        <input class="sr-only" type="radio" name="answer" value="1" onclick="app.handleAnswer(1)">
+                        <div class="w-full h-full rounded-xl border border-border bg-surface hover:bg-white hover:border-accents-4 transition-all duration-200 flex flex-col items-center justify-center">
+                            <div class="w-6 h-6 rounded-full border border-accents-3 indicator transition-transform duration-200"></div>
+                        </div>
+                    </label>
+                    <!-- +2 -->
+                    <label class="cursor-pointer radio-option relative group">
+                        <input class="sr-only" type="radio" name="answer" value="2" onclick="app.handleAnswer(2)">
+                        <div class="w-full h-full rounded-xl border border-border bg-surface hover:bg-white hover:border-accents-4 transition-all duration-200 flex flex-col items-center justify-center">
+                            <div class="w-8 h-8 rounded-full border border-accents-3 flex items-center justify-center indicator transition-transform duration-200">
+                                <span class="material-symbols-outlined text-[20px] text-accents-5">check</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Navigation -->
+                <div class="flex items-center justify-between mt-10 pt-6 border-t border-border">
+                    <button onclick="app.prevQuestion()" class="btn-ghost h-9 px-3 rounded text-sm flex items-center gap-1 transition-colors text-accents-5 hover:text-black">
+                        <span class="material-symbols-outlined text-[16px]">arrow_back</span> Zurück
+                    </button>
+                    <!-- SKIP BUTTON REMOVED -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: RESULTS -->
+    <div id="view-results" class="w-full max-w-6xl hidden opacity-0 flex-col mb-20">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Column: Stats & Top 3 -->
+            <div class="lg:col-span-5 flex flex-col gap-6 animate-slide-up" style="animation-delay: 0.1s;">
+                <div class="geist-card p-6 md:p-8 rounded-2xl bg-white">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold tracking-tight">Dein Ergebnis</h2>
+                        <span class="text-xs font-mono text-accents-4 bg-accents-1 px-2 py-1 rounded border border-border">FERTIG</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <div class="p-5 bg-surface rounded-xl border border-border text-center">
+                            <div class="text-[10px] text-accents-5 uppercase tracking-widest font-semibold mb-2">Wirtschaft</div>
+                            <div id="resEcon" class="text-3xl font-extrabold text-black mb-1">--</div>
+                            <div id="resEconLabel" class="text-xs text-accents-5 font-medium">--</div>
+                        </div>
+                        <div class="p-5 bg-surface rounded-xl border border-border text-center">
+                            <div class="text-[10px] text-accents-5 uppercase tracking-widest font-semibold mb-2">Gesellschaft</div>
+                            <div id="resSoc" class="text-3xl font-extrabold text-black mb-1">--</div>
+                            <div id="resSocLabel" class="text-xs text-accents-5 font-medium">--</div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-accents-4 mb-4 pl-1">Top Übereinstimmungen</h3>
+                    <div id="topMatches" class="space-y-3">
+                        <!-- Matches injected via JS -->
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 no-print">
+                    <button onclick="app.reset()" class="btn-default h-12 rounded-lg text-sm flex items-center justify-center gap-2 transition-all">
+                        <span class="material-symbols-outlined text-[18px]">refresh</span> Neustart
+                    </button>
+                    <button onclick="app.downloadChart()" class="btn-primary h-12 rounded-lg text-sm flex items-center justify-center gap-2 shadow-md transition-all">
+                        <span class="material-symbols-outlined text-[18px]">download</span> Bild speichern
+                    </button>
+                    <!-- Changed Export Button Style: btn-default instead of ghost, visible text -->
+                    <button onclick="app.exportJson()" class="col-span-2 btn-default h-10 rounded-lg text-xs flex items-center justify-center hover:text-black">
+                        Ergebnisdaten exportieren (JSON)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Chart -->
+            <div class="lg:col-span-7 animate-slide-up" style="animation-delay: 0.2s;">
+                <div class="geist-card p-4 md:p-8 rounded-2xl bg-white h-full min-h-[450px] flex flex-col justify-center relative">
+                    <div class="absolute top-6 left-8 z-10">
+                        <h3 class="text-sm font-bold text-black">Politischer Kompass</h3>
+                        <p class="text-xs text-accents-5">Positionierung im Verhältnis zu Parteien</p>
+                    </div>
+                    <div class="relative w-full h-full flex-grow mt-8">
+                        <canvas id="compassChart"></canvas>
+                    </div>
+                    <div class="mt-6 flex justify-center gap-6 text-xs text-accents-5 font-medium">
+                        <div class="flex items-center gap-2">
+                            <!-- Updated Legend Icon -->
+                            <span class="w-3 h-3 rounded-full border-2 border-black bg-transparent shadow-sm"></span>
+                            <span>Du</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-accents-3 opacity-50"></span>
+                            <span>Parteien</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<footer class="mt-auto w-full border-t border-border bg-white">
+  <div class="max-w-7xl mx-auto px-4 py-8 flex flex-col items-center gap-5 text-center">
+
+    <div class="flex items-center gap-2 text-black font-semibold text-sm tracking-wide">
+      <span class="material-symbols-outlined text-[18px]">how_to_vote</span>
+      Die Wahl
+    </div>
+
+    <p class="max-w-md text-xs text-gray-500 leading-relaxed">
+      Dieses Tool dient ausschließlich zur Orientierung und ersetzt keine politische Beratung.
+      Es werden keine personenbezogenen Daten gespeichert oder an Dritte weitergegeben.
+    </p>
+
+    <p class="text-xs text-gray-500">
+      Made by
+      <a
+        href="https://nikity.is-a.dev/"
+        target="_blank"
+        class="font-medium text-gray-600 hover:text-black transition-colors"
+      >
+        Nikita Berger
+      </a>
+    </p>
+
+  </div>
+</footer>
+
+<!-- LOGIC & APPLICATION CODE -->
+<script>
+    /* ============================================================
+       DATA & CONFIGURATION
+       ============================================================ */
+    const CONSTANTS = {
+        STORAGE_KEY: "diewahl_production_state",
+        COUNTRIES: {
+            at: { name: "Österreich", flag: "🇦🇹" },
+            de: { name: "Deutschland", flag: "🇩🇪" },
+            us: { name: "USA", flag: "🇺🇸" }
+        },
+        QUESTIONS: [
+            { id: 1, text: "Der Staat sollte große Unternehmen stärker regulieren.", w: {e: 1, s: 0}, topic: "Wirtschaft" },
+            { id: 2, text: "Steuern für Reiche sollten erhöht werden.", w: {e: 1, s: 0}, topic: "Gerechtigkeit" },
+            { id: 3, text: "Migration sollte stärker begrenzt werden.", w: {e: 0, s: 1}, topic: "Gesellschaft" },
+            { id: 4, text: "Der Klimaschutz ist wichtiger als schnelles Wirtschaftswachstum.", w: {e: 1, s: 0}, topic: "Umwelt" },
+            { id: 5, text: "Der Staat sollte mehr Sozialleistungen anbieten.", w: {e: 1, s: 0}, topic: "Soziales" },
+            { id: 6, text: "Private Unternehmen arbeiten effizienter als der Staat.", w: {e: -1, s: 0}, topic: "Wirtschaft" },
+            { id: 7, text: "Traditionelle Werte sollten stärker geschützt werden.", w: {e: 0, s: 1}, topic: "Gesellschaft" },
+            { id: 8, text: "Die EU sollte mehr politische Macht bekommen.", w: {e: 0, s: -1}, topic: "Außenpolitik" },
+            { id: 9, text: "Freie Märkte bringen den meisten Wohlstand.", w: {e: -1, s: 0}, topic: "Wirtschaft" },
+            { id: 10, text: "Die Wissenschaft sollte bei Gesetzgebung Vorrang haben.", w: {e: 0, s: -1}, topic: "Gesellschaft" },
+            { id: 11, text: "Staatliche Eingriffe in die Wirtschaft schaden Innovation.", w: {e: -1, s: 0}, topic: "Wirtschaft" },
+            { id: 12, text: "Kulturelle Vielfalt muss aktiv gefördert werden.", w: {e: 0, s: -1}, topic: "Kultur" },
+            { id: 13, text: "Militärische Ausgaben sollten erhöht werden.", w: {e: 0, s: 1}, topic: "Sicherheit" },
+            { id: 14, text: "Der Staat sollte in Bildung und Forschung investieren.", w: {e: 1, s: -1}, topic: "Bildung" }
+        ],
+        PARTIES: {
+            at: [
+                { id: "spoe", name: "SPÖ", short: "SPÖ", e: 6, s: -4, color: "#E53935", desc: "Sozialdemokratisch" },
+                { id: "oevp", name: "ÖVP", short: "ÖVP", e: -2, s: 6, color: "#63C4D3", desc: "Christlich-Sozial" },
+                { id: "fpoe", name: "FPÖ", short: "FPÖ", e: 0, s: 9, color: "#0056A2", desc: "Rechtspopulistisch" },
+                { id: "gruene", name: "Grüne", short: "Grüne", e: 5, s: -8, color: "#8BC34A", desc: "Ökologisch" },
+                { id: "neos", name: "NEOS", short: "NEOS", e: -8, s: -6, color: "#E91E63", desc: "Liberal" },
+                { id: "kpoe", name: "KPÖ", short: "KPÖ", e: 9, s: -5, color: "#880E4F", desc: "Kommunistisch" }
+            ],
+            de: [
+                { id: "spd", name: "SPD", short: "SPD", e: 5, s: -3, color: "#E3000F", desc: "Sozialdemokratisch" },
+                { id: "cdu", name: "CDU/CSU", short: "Union", e: -2, s: 5, color: "#111111", desc: "Konservativ" },
+                { id: "gruene", name: "Grüne", short: "Grüne", e: 4, s: -8, color: "#46962b", desc: "Ökologisch" },
+                { id: "fdp", name: "FDP", short: "FDP", e: -9, s: -5, color: "#FFED00", desc: "Liberal" },
+                { id: "afd", name: "AfD", short: "AfD", e: -1, s: 9, color: "#009EE0", desc: "Rechtspopulistisch" },
+                { id: "linke", name: "Die Linke", short: "Linke", e: 8, s: -7, color: "#BE3075", desc: "Sozialistisch" },
+                { id: "bsw", name: "BSW", short: "BSW", e: 7, s: 6, color: "#792556", desc: "Links-Konservativ" }
+            ],
+            us: [
+                { id: "dem", name: "Democrats", short: "Dems", e: 2, s: -5, color: "#00AEF3", desc: "Liberal/Center" },
+                { id: "rep", name: "Republicans", short: "GOP", e: -7, s: 7, color: "#E81B23", desc: "Conservative" },
+                { id: "lib", name: "Libertarian", short: "LBT", e: -9, s: -4, color: "#F5C542", desc: "Libertarian" },
+                { id: "green", name: "Green Party", short: "Green", e: 6, s: -8, color: "#17AA5C", desc: "Green" }
+            ]
+        }
+    };
+
+    /* ============================================================
+       LOGIC ENGINE
+       ============================================================ */
+    const logic = {
+        calculateResults: (answers) => {
+            let rawE = 0, rawS = 0;
+            let normE = 0, normS = 0;
+
+            CONSTANTS.QUESTIONS.forEach((q, idx) => {
+                const val = answers[idx];
+                if (val !== undefined && val !== null) {
+                    rawE += val * q.w.e;
+                    rawS += val * q.w.s;
+                    normE += Math.abs(q.w.e);
+                    normS += Math.abs(q.w.s);
+                }
+            });
+
+            const scoreE = normE > 0 ? (rawE / normE) * 5 : 0;
+            const scoreS = normS > 0 ? (rawS / normS) * 5 : 0;
+
+            return {
+                e: parseFloat(scoreE.toFixed(1)),
+                s: parseFloat(scoreS.toFixed(1))
+            };
+        },
+
+        matchParties: (userScore, countryCode) => {
+            const parties = CONSTANTS.PARTIES[countryCode] || CONSTANTS.PARTIES.at;
+            const maxDist = Math.sqrt(400 + 400); // ~28.28
+
+            return parties.map(p => {
+                const dist = Math.sqrt(Math.pow(userScore.e - p.e, 2) + Math.pow(userScore.s - p.s, 2));
+                const confidence = Math.max(0, 100 - (dist / maxDist * 100));
+                return {
+                    ...p,
+                    dist: dist,
+                    match: Math.round(confidence)
+                };
+            }).sort((a, b) => a.dist - b.dist);
+        }
+    };
+
+    /* ============================================================
+       APP CONTROLLER
+       ============================================================ */
+    const app = {
+        state: {
+            currentStep: 0,
+            answers: {},
+            country: 'at',
+            completed: false
+        },
+        chartInstance: null,
+
+        init: () => {
+            app.loadState();
+            app.updateCountryUI();
+            
+            // Check orientation changes for chart resize
+            window.addEventListener('resize', () => {
+                if(app.chartInstance) app.chartInstance.resize();
+            });
+        },
+
+        setCountry: (code) => {
+            app.state.country = code;
+            
+            // MODIFIED: We no longer reset answers or step.
+            // This allows switching mid-quiz.
+            
+            app.updateCountryUI();
+            app.saveState();
+            
+            // UI Feedback (close dropdown simulation)
+            const dropdown = document.querySelector('.group:hover .absolute');
+            if(dropdown) dropdown.style.display = 'none';
+            setTimeout(() => { if(dropdown) dropdown.style.display = ''; }, 100);
+
+            // MODIFIED: If done, update the results (image, matches) immediately
+            if (app.state.completed) {
+                app.showResults();
+            }
+        },
+
+        updateCountryUI: () => {
+            const c = CONSTANTS.COUNTRIES[app.state.country];
+            document.getElementById('countryFlag').textContent = c.flag;
+            document.getElementById('countryName').textContent = c.name;
+        },
+
+        startQuiz: () => {
+            app.state.currentStep = 0;
+            app.state.completed = false;
+            app.state.answers = {};
+            app.showView('quiz');
+            app.renderQuestion();
+        },
+
+        resumeQuiz: () => {
+            if(app.state.completed) {
+                app.showResults();
+            } else {
+                app.showView('quiz');
+                app.renderQuestion();
+            }
+        },
+
+        showView: (viewName) => {
+            ['intro', 'quiz', 'results'].forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if(v === viewName) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                    // Add fade-in animation class again to trigger
+                    el.classList.remove('animate-fade-in');
+                    void el.offsetWidth; // trigger reflow
+                    el.classList.add('animate-fade-in');
+                } else {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                }
+            });
+
+            const progCont = document.getElementById('progressContainer');
+            if(viewName === 'quiz') {
+                progCont.style.opacity = '1';
+            } else {
+                progCont.style.opacity = '0';
+            }
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        renderQuestion: () => {
+            const qIndex = app.state.currentStep;
+            const q = CONSTANTS.QUESTIONS[qIndex];
+            
+            if (!q) {
+                app.showResults();
+                return;
+            }
+
+            document.getElementById('questionCounter').textContent = `${qIndex + 1 < 10 ? '0'+(qIndex+1) : qIndex+1} / ${CONSTANTS.QUESTIONS.length}`;
+            document.getElementById('questionTopic').textContent = q.topic;
+            document.getElementById('questionText').textContent = q.text;
+
+            const inputs = document.querySelectorAll('input[name="answer"]');
+            inputs.forEach(i => i.checked = false);
+            
+            if (app.state.answers[qIndex] !== undefined) {
+                const val = app.state.answers[qIndex];
+                const input = document.querySelector(`input[name="answer"][value="${val}"]`);
+                if(input) input.checked = true;
+            }
+
+            const percent = ((qIndex) / CONSTANTS.QUESTIONS.length) * 100;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+
+            app.saveState();
+        },
+
+        handleAnswer: (val) => {
+            app.state.answers[app.state.currentStep] = parseInt(val);
+            const percent = ((app.state.currentStep + 1) / CONSTANTS.QUESTIONS.length) * 100;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            
+            setTimeout(() => {
+                app.nextQuestion();
+            }, 200);
+        },
+
+        nextQuestion: () => {
+            if (app.state.currentStep < CONSTANTS.QUESTIONS.length - 1) {
+                app.state.currentStep++;
+                app.renderQuestion();
+            } else {
+                app.state.completed = true;
+                app.showResults();
+            }
+        },
+
+        prevQuestion: () => {
+            if (app.state.currentStep > 0) {
+                app.state.currentStep--;
+                app.renderQuestion();
+            } else {
+                app.showView('intro');
+            }
+        },
+
+        // SKIP FUNCTION REMOVED
+
+        showResults: () => {
+            app.state.completed = true;
+            app.saveState();
+            app.showView('results');
+            document.getElementById('progressBar').style.width = `100%`;
+
+            const scores = logic.calculateResults(app.state.answers);
+            const matches = logic.matchParties(scores, app.state.country);
+
+            document.getElementById('resEcon').textContent = (scores.e > 0 ? "+" : "") + scores.e;
+            document.getElementById('resSoc').textContent = (scores.s > 0 ? "+" : "") + scores.s;
+
+            const eLabel = scores.e > 2 ? "Staatlich reguliert" : (scores.e < -2 ? "Marktwirtschaftlich" : "Zentristisch");
+            const sLabel = scores.s > 2 ? "Konservativ" : (scores.s < -2 ? "Progressiv" : "Moderat");
+            document.getElementById('resEconLabel').textContent = eLabel;
+            document.getElementById('resSocLabel').textContent = sLabel;
+
+            const listEl = document.getElementById('topMatches');
+            listEl.innerHTML = '';
+            
+            matches.slice(0, 3).forEach((m, idx) => {
+                const div = document.createElement('div');
+                div.className = `group flex items-center justify-between p-3.5 rounded-lg border transition-all duration-200 ${idx === 0 ? 'border-black bg-accents-1 shadow-sm' : 'border-transparent hover:border-border hover:bg-surface'}`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-sm ring-2 ring-transparent group-hover:ring-offset-1 transition-all" style="background-color: ${m.color}">
+                            ${m.short.substring(0,3)}
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-black leading-tight">${m.name}</div>
+                            <div class="text-[10px] text-accents-5 font-medium tracking-wide mt-0.5">${m.desc || 'Partei'}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-sm text-black">${m.match}%</div>
+                        <div class="text-[9px] text-accents-4 uppercase tracking-wider">Match</div>
+                    </div>
+                `;
+                listEl.appendChild(div);
+            });
+
+            app.renderChart(scores, matches);
+        },
+
+        renderChart: (userScore, matches) => {
+            const ctx = document.getElementById('compassChart').getContext('2d');
+            
+            if(app.chartInstance) app.chartInstance.destroy();
+
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = '#666';
+
+            const userDataset = {
+                label: 'Du',
+                data: [{x: userScore.e, y: userScore.s}],
+                // MODIFIED: Ring style (empty center)
+                backgroundColor: 'transparent',
+                borderColor: '#000000',
+                borderWidth: 4,
+                pointRadius: 14,
+                pointHoverRadius: 16,
+                pointShadowBlur: 10,
+                pointShadowColor: 'rgba(0,0,0,0.3)',
+                order: 0
+            };
+
+            const partyDataset = {
+                label: 'Parteien',
+                data: matches.map(p => ({ x: p.e, y: p.s, party: p })),
+                backgroundColor: matches.map(p => p.color),
+                borderColor: '#ffffff',
+                borderWidth: 1.5,
+                pointRadius: 9,
+                pointHoverRadius: 12,
+                order: 1
+            };
+
+            app.chartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets: [userDataset, partyDataset] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 1500, easing: 'easeOutQuart' },
+                    layout: { padding: 20 },
+                    scales: {
+                        x: {
+                            min: -11, max: 11,
+                            grid: { color: (c) => c.tick.value === 0 ? '#444' : '#f0f0f0', lineWidth: (c) => c.tick.value === 0 ? 1.5 : 1, borderDash: [4, 4] },
+                            ticks: { display: false },
+                            title: { display: true, text: 'Markt ⟷ Staat', color: '#888', font: {size: 10, weight: '600'} }
+                        },
+                        y: {
+                            min: -11, max: 11,
+                            grid: { color: (c) => c.tick.value === 0 ? '#444' : '#f0f0f0', lineWidth: (c) => c.tick.value === 0 ? 1.5 : 1, borderDash: [4, 4] },
+                            ticks: { display: false },
+                            title: { display: true, text: 'Liberal ⟷ Konservativ', color: '#888', font: {size: 10, weight: '600'} }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#ffffff',
+                            titleColor: '#000000',
+                            bodyColor: '#666666',
+                            borderColor: '#eaeaea',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 4,
+                            usePointStyle: true,
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 11 },
+                            callbacks: {
+                                label: (ctx) => {
+                                    if(ctx.datasetIndex === 0) return " Deine Position";
+                                    const p = ctx.raw.party;
+                                    return ` ${p.name} (${p.match}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        },
+
+        saveState: () => {
+            try {
+                const data = {
+                    answers: app.state.answers,
+                    currentStep: app.state.currentStep,
+                    country: app.state.country,
+                    completed: app.state.completed,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(CONSTANTS.STORAGE_KEY, JSON.stringify(data));
+            } catch(e) { /* silent fail for strict privacy settings */ }
+        },
+
+        loadState: () => {
+            try {
+                const raw = localStorage.getItem(CONSTANTS.STORAGE_KEY);
+                if(raw) {
+                    const data = JSON.parse(raw);
+                    // Basic integrity check
+                    if(data.answers && typeof data.currentStep === 'number') {
+                        app.state.answers = data.answers;
+                        app.state.currentStep = data.currentStep;
+                        app.state.country = data.country || 'at';
+                        app.state.completed = data.completed || false;
+                        
+                        if(Object.keys(data.answers).length > 0 && !data.completed) {
+                            document.getElementById('resumeBtn').style.display = 'flex';
+                        }
+                    }
+                }
+            } catch(e) { console.warn("Could not load state"); }
+        },
+
+        reset: () => {
+            localStorage.removeItem(CONSTANTS.STORAGE_KEY);
+            location.reload();
+        },
+
+        downloadChart: () => {
+            const canvas = document.getElementById('compassChart');
+            // Create a temp canvas to add white background (chart is transparent by default)
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            tempCtx.fillStyle = '#ffffff';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            const link = document.createElement('a');
+            link.download = 'die-wahl-ergebnis.png';
+            link.href = tempCanvas.toDataURL('image/png', 1.0);
+            link.click();
+        },
+
+        exportJson: () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+                app: "Die Wahl",
+                version: "1.0.0",
+                results: logic.calculateResults(app.state.answers),
+                answers: app.state.answers,
+                country: app.state.country,
+                date: new Date().toISOString()
+            }, null, 2));
+            const link = document.createElement('a');
+            link.setAttribute("href", dataStr);
+            link.setAttribute("download", "die-wahl-result.json");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+    };
+
+    // Init App
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', app.init);
+    } else {
+        app.init();
+    }
+
+</script>
+</body>
+</html>
