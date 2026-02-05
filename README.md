@@ -1,5 +1,7 @@
-# Die Wahl
+# Die Wahl - Politischer Kompass
 
-Quick vibe-coded website to check what Party fits you.
+**Die Wahl** ist ein moderner, wissenschaftlich fundierter politischer Kompass für Österreich, Deutschland und die USA. Vergleiche deine Standpunkte anonym und datenschutzfreundlich mit den aktuellen Positionen der politischen Parteien.
 
-Austria vs Germany vs USA
+[Link zur Website](https://nikity.is-a.dev/die-wahl)
+
+Wurde komplett vibe-coded, aber dennoch strikt recherchiert für korrekte Parteipositionen.
